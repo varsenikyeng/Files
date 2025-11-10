@@ -61,19 +61,32 @@ int main(){
         	return 1;
 	}
 	off_t start_4 = offset;
-	char remainder[1024];
+	off_t end_4 = start_4 + 2;
+	off_t file_size = lseek(fd, 0, SEEK_END);
+	size_t remainder_size = file_size - end_4;
+	char remainder[remainder_size];
+	if (lseek(fd, end_4, SEEK_SET) == -1) {
+        	perror("lseek to remainder");
+        	close(fd);
+        	return 1;
+   	}	
 	nr = read(fd, remainder, sizeof(remainder));
 	if(nr == -1){
 		perror("read");
 		return 1;
 	}
 
-	if (lseek(fd, start_4, SEEK_SET) == -1) {
-        	perror("lseek back");
+	if (ftruncate(fd, start_4) == -1) {
+        	perror("ftruncate");
         	close(fd);
         	return 1;
-	}
-	ftruncate(fd, lseek(fd, 0, SEEK_CUR));
+    	}
+    
+    	if (lseek(fd, start_4, SEEK_SET) == -1) {
+        	perror("lseek before write");
+        	close(fd);
+        	return 1;
+    	}
 	const char *repl = "100\n";
 	nw = write(fd, repl, strlen(repl));
 	if(nw <0 || nw != strlen(repl)){
